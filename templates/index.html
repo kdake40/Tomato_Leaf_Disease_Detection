@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tomato Leaf Disease Detection using CNN</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Tomato Leaf Disease Detection using CNN</h1>
+        <p>Upload an image of a tomato leaf here to predict its disease.</p>
+
+        <div class="upload-area">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <input type="file" id="fileInput" name="file" accept="image/*" required>
+                <button type="button" onclick="uploadImage()">Predict</button>
+            </form>
+        </div>
+
+        <div id="output">
+            <p><b>PREDICTED DISEASE:</b> <span id="diseaseName">None</span></p>
+            <p><b>CONFIDENCE:</b> <span id="confidence">0%</span></p>
+            <p><b>PREVENTION:</b> <span id="prevention">None</span></p>
+        </div>
+
+        <div class="image-preview" id="imagePreview">
+            <img id="uploadedImage" alt="Uploaded Leaf Image" style="display:none;"/>
+        </div>
+    </div>
+
+    <script>
+        function uploadImage() {
+            let fileInput = document.getElementById('fileInput');
+            let formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('diseaseName').textContent = data.predicted_class || "Unknown";
+                document.getElementById('confidence').textContent = data.confidence ? `${data.confidence}%` : "N/A";
+                document.getElementById('prevention').textContent = data.prevention || "N/A";
+
+                // Show the uploaded image
+                let uploadedImage = document.getElementById('uploadedImage');
+                uploadedImage.src = URL.createObjectURL(fileInput.files[0]);
+                uploadedImage.style.display = 'block';
+            })
+            .catch(error => {
+                document.getElementById('diseaseName').textContent = "Error: " + error;
+            });
+        }
+
+        // Resize image preview
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const imgElement = document.getElementById('uploadedImage');
+                imgElement.onload = function() {
+                    // Resize image to fit preview container if it's too large
+                    const maxWidth = 400;
+                    const maxHeight = 400;
+                    const img = imgElement;
+                    const width = img.width;
+                    const height = img.height;
+
+                    if (width > maxWidth || height > maxHeight) {
+                        const ratio = Math.min(maxWidth / width, maxHeight / height);
+                        img.width = width * ratio;
+                        img.height = height * ratio;
+                    }
+                };
+                imgElement.src = e.target.result;
+                imgElement.style.display = 'block'; // Show the image preview
+            };
+
+            reader.readAsDataURL(file);
+        });
+    </script>
+</body>
+</html>
